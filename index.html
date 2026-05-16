@@ -1927,6 +1927,7 @@
     gcalLoadedStart = start;
     gcalLoadedEnd = end;
     const visible = gcalCalendars.filter(c => !gcalHiddenCalIds.has(c.id));
+    console.log("[gcal] Loading events for", visible.length, "of", gcalCalendars.length, "calendars · range:", dateToISO(start), "~", dateToISO(end));
     const results = await Promise.all(visible.map(async (c) => {
       try {
         const data = await gcalApi(
@@ -1935,9 +1936,11 @@
           "&timeMax=" + end.toISOString() +
           "&singleEvents=true&orderBy=startTime&maxResults=250"
         );
-        return (data.items || []).map(e => Object.assign({}, e, { _cal: c }));
+        const items = (data.items || []).map(e => Object.assign({}, e, { _cal: c }));
+        if (items.length > 0) console.log("[gcal]   ✓", c.summary, "→", items.length, "events");
+        return items;
       } catch (err) {
-        console.warn("Event load failed:", c.id, err);
+        console.warn("[gcal]   ✗", c.summary, "failed:", err.message);
         return [];
       }
     }));
@@ -1946,6 +1949,13 @@
       const sb = b.start.dateTime || b.start.date;
       return sa.localeCompare(sb);
     });
+    console.log("[gcal] Total events loaded:", gcalEvents.length);
+  }
+
+  async function gcalRefresh() {
+    gcalLoading = true; renderGcalView();
+    try { await loadGcalEvents(); } catch (e) { console.error(e); }
+    gcalLoading = false; renderGcalView();
   }
 
   // ===== Week grid helpers =====
@@ -2375,6 +2385,7 @@
       '<span class="nav-title">' + navTitle + '</span>' +
       '<span class="nav-spacer"></span>' +
       viewToggleHTML + zoomHTML +
+      '<button id="gcalRefreshBtn" title="다시 불러오기">↻</button>' +
       '<button id="gcalNewBtn" class="primary">＋ 새 일정</button>' +
       '<button id="gcalLogoutBtn">로그아웃</button>';
     view.appendChild(navBar);
@@ -2388,6 +2399,7 @@
       document.getElementById("gcalZoomOut").addEventListener("click", () => gcalSetHourHeight(-8));
       document.getElementById("gcalZoomIn").addEventListener("click", () => gcalSetHourHeight(8));
     }
+    document.getElementById("gcalRefreshBtn").addEventListener("click", gcalRefresh);
     document.getElementById("gcalNewBtn").addEventListener("click", () => openGcalModal(null));
     document.getElementById("gcalLogoutBtn").addEventListener("click", gcalLogout);
 
