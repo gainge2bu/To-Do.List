@@ -2837,6 +2837,26 @@
 
   let userSettings = loadSettings();
 
+  // 한글 받침 유무에 따라 이/가 등 조사를 자동 선택
+  // 마지막 한글 음절(또는 영문자)을 보고 판단
+  function pickJosa(str, withFinal, withoutFinal) {
+    if (!str) return withFinal;
+    for (let i = str.length - 1; i >= 0; i--) {
+      const code = str.charCodeAt(i);
+      // Hangul syllable block
+      if (code >= 0xAC00 && code <= 0xD7A3) {
+        const jong = (code - 0xAC00) % 28;
+        return jong === 0 ? withoutFinal : withFinal;
+      }
+      // English letter fallback (vowel ending → withoutFinal)
+      if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+        const c = String.fromCharCode(code).toLowerCase();
+        return /[aeiouy]/.test(c) ? withoutFinal : withFinal;
+      }
+    }
+    return withFinal;
+  }
+
   function applyBrand() {
     const s = userSettings;
     const name = (s.name || "").trim();
@@ -2845,10 +2865,17 @@
     const enPart = en ? `(${en})` : "";
 
     let title;
-    if (name && role) title = `${name} ${role}${enPart}이 쓰는 일정 관리 시트`;
-    else if (name) title = `${name}${enPart}의 일정 관리 시트`;
-    else if (role) title = `${role}의 일정 관리 시트`;
-    else title = "일정 관리 시트";
+    if (name && role) {
+      const subject = `${name} ${role}${enPart}`;
+      title = `${subject}${pickJosa(subject, "이", "가")} 쓰는 일정 관리 시트`;
+    } else if (name) {
+      const subject = `${name}${enPart}`;
+      title = `${subject}${pickJosa(subject, "이", "가")} 쓰는 일정 관리 시트`;
+    } else if (role) {
+      title = `${role}의 일정 관리 시트`;
+    } else {
+      title = "일정 관리 시트";
+    }
     document.getElementById("brand-title").textContent = title;
 
     let docTitle;
