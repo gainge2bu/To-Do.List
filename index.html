@@ -1517,11 +1517,18 @@
   function ensureGoogleAuth(cb) {
     if (typeof google !== "undefined" && google.accounts && google.accounts.oauth2) {
       if (!gcalTokenClient) {
-        gcalTokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: GCAL_CLIENT_ID,
-          scope: GCAL_SCOPE,
-          callback: handleTokenResponse,
-        });
+        try {
+          gcalTokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GCAL_CLIENT_ID,
+            scope: GCAL_SCOPE,
+            callback: handleTokenResponse,
+            error_callback: handleAuthError,
+          });
+          console.log("[gcal] Token client initialized");
+        } catch (e) {
+          console.error("[gcal] initTokenClient failed:", e);
+          alert("Google 인증 모듈 초기화 실패: " + e.message);
+        }
       }
       cb && cb();
     } else {
@@ -1529,9 +1536,20 @@
     }
   }
 
+  function handleAuthError(err) {
+    console.error("[gcal] OAuth error_callback:", err);
+    const msg = err.message || err.type || JSON.stringify(err);
+    alert("Google 로그인 중 오류:\n" + msg + "\n\n팝업이 차단되었거나 동의 화면이 닫혔을 수 있습니다.");
+  }
+
   function handleTokenResponse(resp) {
+    console.log("[gcal] Token response:", resp);
     if (resp.error) {
-      alert("Google 로그인 실패: " + resp.error);
+      alert("Google 로그인 실패: " + resp.error + (resp.error_description ? "\n" + resp.error_description : ""));
+      return;
+    }
+    if (!resp.access_token) {
+      alert("토큰을 받지 못했습니다.");
       return;
     }
     gcalToken = {
@@ -1539,6 +1557,7 @@
       expires_at: Date.now() + ((resp.expires_in || 3600) - 60) * 1000,
     };
     saveGcalTokenToStorage(gcalToken);
+    console.log("[gcal] Token saved, expires in", resp.expires_in, "seconds");
     initGcalAfterLogin();
   }
 
@@ -1556,9 +1575,18 @@
   }
 
   function gcalLogin() {
-    ensureGoogleAuth(() => {
+    if (!gcalTokenClient) {
+      console.error("[gcal] gcalTokenClient not ready. google:", typeof google);
+      alert("Google 인증 모듈이 아직 로드되지 않았습니다.\n1~2초 후 다시 시도하거나, 새로고침 후 다시 시도해주세요.");
+      return;
+    }
+    try {
+      console.log("[gcal] Requesting access token...");
       gcalTokenClient.requestAccessToken({ prompt: gcalToken ? "" : "consent" });
-    });
+    } catch (e) {
+      console.error("[gcal] requestAccessToken failed:", e);
+      alert("로그인 시작 실패: " + e.message);
+    }
   }
 
   function gcalLogout() {
