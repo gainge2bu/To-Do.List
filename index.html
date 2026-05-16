@@ -1568,7 +1568,8 @@
       await loadGcalCalendars();
       await loadGcalEvents();
     } catch (e) {
-      console.error("Calendar load failed:", e);
+      console.error("[gcal] Calendar load failed:", e);
+      alert(e.message);
     }
     gcalLoading = false;
     renderGcalView();
@@ -1615,15 +1616,34 @@
         "Content-Type": "application/json",
       }, opts.headers || {}),
     }));
-    if (r.status === 401 || r.status === 403) {
-      clearGcalTokenFromStorage();
-      gcalToken = null;
-      renderGcalView();
-      throw new Error("권한 만료 — 다시 로그인하세요.");
-    }
     if (!r.ok) {
       const text = await r.text();
-      throw new Error("API " + r.status + ": " + text);
+      let msg = "API " + r.status;
+      let googleMsg = text;
+      try {
+        const j = JSON.parse(text);
+        if (j.error && j.error.message) googleMsg = j.error.message;
+      } catch (_) {}
+      console.error("[gcal] API error", r.status, googleMsg);
+      // 401 = token invalid → clear and force re-login
+      if (r.status === 401) {
+        clearGcalTokenFromStorage();
+        gcalToken = null;
+        renderGcalView();
+        throw new Error("로그인이 만료되었습니다. 다시 로그인하세요.");
+      }
+      // 403 = API not enabled or insufficient scope (do NOT clear token)
+      if (r.status === 403) {
+        if (/SERVICE_DISABLED|has not been used|disabled/i.test(googleMsg)) {
+          throw new Error(
+            "Google Calendar API가 활성화되지 않았습니다.\n\n" +
+            "👉 https://console.cloud.google.com/apis/library/calendar-json.googleapis.com?project=tim-schedule-sheet 에서 '사용' 버튼을 누르세요.\n\n" +
+            "원본 메시지: " + googleMsg
+          );
+        }
+        throw new Error("권한 부족 (403): " + googleMsg);
+      }
+      throw new Error(msg + ": " + googleMsg);
     }
     if (r.status === 204) return null;
     return r.json();
