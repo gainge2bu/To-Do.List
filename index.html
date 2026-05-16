@@ -294,8 +294,10 @@
   }
   .add-form select {
     appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23000046'/></svg>");
-    background-repeat: no-repeat; background-position: right 14px center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000046'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 10px 6px;
     padding-right: 30px;
   }
   .add-form button {
@@ -1070,7 +1072,7 @@
   [data-theme="dark"] .section-head.editing .idx { background: var(--lime); color: #000000; }
 
   [data-theme="dark"] .add-form select {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23FFFFFF'/></svg>");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffffff'/%3E%3C/svg%3E");
   }
   [data-theme="dark"] .add-form button { background: var(--lime); color: #000000; }
   [data-theme="dark"] .add-form button:hover { background: var(--blue); color: var(--lime); }
