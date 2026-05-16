@@ -733,9 +733,80 @@
     background: var(--card); border: 1px solid var(--line);
     border-radius: 0 0 3px 3px; box-shadow: var(--shadow-md);
     overflow: hidden;
-    --hour-height: 44px;
+    --hour-height: 40px;
     --time-col-width: 52px;
     --day-count: 7;
+  }
+  .gcal-grid-nav .view-toggle, .gcal-grid-nav .zoom-group {
+    display: inline-flex; border: 1px solid var(--line); border-radius: 3px;
+    overflow: hidden; margin-left: 4px;
+  }
+  .gcal-grid-nav .view-toggle button,
+  .gcal-grid-nav .zoom-group button {
+    border: none !important; border-radius: 0 !important;
+    border-right: 1px solid var(--line) !important;
+    padding: 6px 12px;
+  }
+  .gcal-grid-nav .view-toggle button:last-child,
+  .gcal-grid-nav .zoom-group button:last-child { border-right: none !important; }
+  .gcal-grid-nav .view-toggle button.active {
+    background: var(--ink) !important; color: var(--lime) !important;
+  }
+  .gcal-grid-nav .zoom-group button {
+    padding: 6px 10px; font-size: 16px; line-height: 1; min-width: 30px;
+  }
+
+  /* Month view */
+  .gcal-month-wrap {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 0 0 3px 3px; box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .gcal-month-header {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    border-bottom: 1px solid var(--line); background: var(--bg);
+  }
+  .gcal-month-dow {
+    text-align: center; padding: 8px 4px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+    color: var(--muted); border-left: 1px solid var(--line);
+  }
+  .gcal-month-dow:first-child { border-left: none; }
+  .gcal-month-dow.sun { color: var(--danger); }
+  .gcal-month-body {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(110px, 1fr);
+  }
+  .gcal-month-cell {
+    border-left: 1px solid var(--line); border-top: 1px solid var(--line);
+    padding: 4px; cursor: pointer; overflow: hidden;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .gcal-month-cell:nth-child(7n+1) { border-left: none; }
+  .gcal-month-cell.other { background: var(--bg); }
+  .gcal-month-cell.other .d-num { color: var(--muted-2); }
+  .gcal-month-cell.today { background: rgba(171,255,82,0.07); }
+  .gcal-month-cell .d-num {
+    font-size: 12.5px; font-weight: 700; color: var(--ink);
+    margin-bottom: 2px; font-variant-numeric: tabular-nums;
+  }
+  .gcal-month-cell.today .d-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; background: var(--lime); border-radius: 50%;
+    color: var(--ink); font-weight: 800;
+  }
+  .gcal-month-cell .d-num.sun { color: var(--danger); }
+  .gcal-month-event {
+    font-size: 10.5px; padding: 1px 5px;
+    background: var(--bg); color: var(--ink);
+    border-left: 2px solid var(--blue);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-weight: 500; cursor: pointer; line-height: 1.3;
+  }
+  .gcal-month-event:hover { background: var(--line); }
+  .gcal-month-more {
+    font-size: 10px; color: var(--muted); padding: 0 5px;
+    font-style: italic;
   }
   .gcal-grid-header-row {
     display: grid;
@@ -1658,10 +1729,11 @@
   let gcalAnchorDate = new Date();
   let gcalLoadedStart = null;
   let gcalLoadedEnd = null;
+  let gcalViewMode = localStorage.getItem("gainge_gcal_view_mode_v1") || "week"; // day | week | month
+  let gcalGridHourHeight = parseInt(localStorage.getItem("gainge_gcal_hour_height_v1") || "40", 10);
 
-  const GCAL_GRID_START_HOUR = 6;
+  const GCAL_GRID_START_HOUR = 0;
   const GCAL_GRID_END_HOUR = 23;
-  const GCAL_GRID_HOUR_HEIGHT = 44;
 
   function pad2(n) { return String(n).padStart(2, "0"); }
 
@@ -1848,10 +1920,10 @@
   }
 
   async function loadGcalEvents() {
-    // Load ±1 week around current anchor's week + 4 weeks ahead
-    const monday = getMondayOfWeek(gcalAnchorDate);
-    const start = new Date(monday); start.setDate(start.getDate() - 7); start.setHours(0,0,0,0);
-    const end = new Date(monday); end.setDate(end.getDate() + 35); end.setHours(23,59,59,999);
+    // Anchor 기준으로 ±30일 정도 로드 (월 뷰까지 커버)
+    const anchor = new Date(gcalAnchorDate);
+    const start = new Date(anchor); start.setDate(anchor.getDate() - 30); start.setHours(0,0,0,0);
+    const end = new Date(anchor); end.setDate(anchor.getDate() + 45); end.setHours(23,59,59,999);
     gcalLoadedStart = start;
     gcalLoadedEnd = end;
     const visible = gcalCalendars.filter(c => !gcalHiddenCalIds.has(c.id));
@@ -1947,16 +2019,20 @@
     return result;
   }
 
-  function gcalNavigateWeek(deltaDays, gotoToday) {
-    if (gotoToday) {
+  function gcalNavigate(direction) {
+    // direction: -1 = previous, 0 = today, 1 = next (interpreted by viewMode)
+    if (direction === 0) {
       gcalAnchorDate = new Date();
     } else {
       const d = new Date(gcalAnchorDate);
-      d.setDate(d.getDate() + deltaDays);
+      if (gcalViewMode === "day") d.setDate(d.getDate() + direction);
+      else if (gcalViewMode === "month") d.setMonth(d.getMonth() + direction);
+      else d.setDate(d.getDate() + direction * 7); // week
       gcalAnchorDate = d;
     }
-    const monday = getMondayOfWeek(gcalAnchorDate);
-    if (gcalLoadedStart && gcalLoadedEnd && monday >= gcalLoadedStart && monday < gcalLoadedEnd) {
+    // Reload if anchor out of loaded range
+    const checkDate = new Date(gcalAnchorDate);
+    if (gcalLoadedStart && gcalLoadedEnd && checkDate >= gcalLoadedStart && checkDate < gcalLoadedEnd) {
       renderGcalView();
     } else {
       (async () => {
@@ -1967,24 +2043,40 @@
     }
   }
 
-  function renderGcalWeekGrid() {
-    const monday = getMondayOfWeek(gcalAnchorDate);
-    const days = getDaysOfWeek(monday);
+  function gcalSetViewMode(mode) {
+    if (gcalViewMode === mode) return;
+    gcalViewMode = mode;
+    localStorage.setItem("gainge_gcal_view_mode_v1", mode);
+    renderGcalView();
+  }
+
+  function gcalSetHourHeight(delta) {
+    gcalGridHourHeight = Math.max(20, Math.min(80, gcalGridHourHeight + delta));
+    localStorage.setItem("gainge_gcal_hour_height_v1", String(gcalGridHourHeight));
+    renderGcalView();
+  }
+
+  function renderGcalTimeGrid(days) {
     const dayISOs = days.map(dateToISO);
     const todayIsoStr = todayISO();
-    const dowLabels = ["월","화","수","목","금","토","일"];
+    const dowLabels = ["일","월","화","수","목","금","토"];
 
     const wrap = document.createElement("div");
     wrap.className = "gcal-grid-wrap";
+    wrap.style.setProperty("--day-count", days.length);
+    wrap.style.setProperty("--hour-height", gcalGridHourHeight + "px");
 
     // Header
     const headerRow = document.createElement("div");
     headerRow.className = "gcal-grid-header-row";
     headerRow.appendChild(document.createElement("div"));
-    days.forEach((d, i) => {
+    days.forEach((d) => {
+      const dow = d.getDay();
       const cell = document.createElement("div");
-      cell.className = "gcal-day-header" + (dateToISO(d) === todayIsoStr ? " today" : "") + (i === 6 ? " sun" : "");
-      cell.innerHTML = '<div class="dow">' + dowLabels[i] + '</div><div class="dnum">' + d.getDate() + '</div>';
+      cell.className = "gcal-day-header" + (dateToISO(d) === todayIsoStr ? " today" : "") + (dow === 0 ? " sun" : "");
+      const isDayMode = days.length === 1;
+      const dnumLabel = isDayMode ? ((d.getMonth()+1) + "/" + d.getDate()) : d.getDate();
+      cell.innerHTML = '<div class="dow">' + dowLabels[dow] + '</div><div class="dnum">' + dnumLabel + '</div>';
       headerRow.appendChild(cell);
     });
     wrap.appendChild(headerRow);
@@ -2055,8 +2147,8 @@
         if (!ev.target.classList.contains("gcal-day-col") && !ev.target.classList.contains("hour-line")) return;
         const rect = col.getBoundingClientRect();
         const y = ev.clientY - rect.top;
-        const hour = Math.floor(y / GCAL_GRID_HOUR_HEIGHT) + GCAL_GRID_START_HOUR;
-        const minute = Math.round(((y % GCAL_GRID_HOUR_HEIGHT) / GCAL_GRID_HOUR_HEIGHT * 60) / 15) * 15;
+        const hour = Math.floor(y / gcalGridHourHeight) + GCAL_GRID_START_HOUR;
+        const minute = Math.round(((y % gcalGridHourHeight) / gcalGridHourHeight * 60) / 15) * 15;
         const clicked = new Date(d);
         clicked.setHours(hour, minute, 0, 0);
         openGcalModalWithTime(clicked);
@@ -2068,8 +2160,8 @@
         const eD = new Date(e.end.dateTime);
         const startH = sD.getHours() + sD.getMinutes()/60;
         const endH = eD.getHours() + eD.getMinutes()/60;
-        const top = (startH - GCAL_GRID_START_HOUR) * GCAL_GRID_HOUR_HEIGHT;
-        const height = Math.max((endH - startH) * GCAL_GRID_HOUR_HEIGHT - 1, 18);
+        const top = (startH - GCAL_GRID_START_HOUR) * gcalGridHourHeight;
+        const height = Math.max((endH - startH) * gcalGridHourHeight - 1, 18);
         const widthPct = 100 / item.totalCols;
         const leftPct = widthPct * item.col;
         const ev = document.createElement("div");
@@ -2091,7 +2183,7 @@
         if (nowH >= GCAL_GRID_START_HOUR && nowH <= GCAL_GRID_END_HOUR) {
           const line = document.createElement("div");
           line.className = "gcal-now-line";
-          line.style.top = ((nowH - GCAL_GRID_START_HOUR) * GCAL_GRID_HOUR_HEIGHT) + "px";
+          line.style.top = ((nowH - GCAL_GRID_START_HOUR) * gcalGridHourHeight) + "px";
           col.appendChild(line);
         }
       }
@@ -2104,7 +2196,7 @@
       const targetHour = todayInView
         ? Math.max(GCAL_GRID_START_HOUR, new Date().getHours() - 1)
         : 8;
-      bodyWrap.scrollTop = (targetHour - GCAL_GRID_START_HOUR) * GCAL_GRID_HOUR_HEIGHT;
+      bodyWrap.scrollTop = (targetHour - GCAL_GRID_START_HOUR) * gcalGridHourHeight;
     }, 0);
 
     return wrap;
@@ -2116,6 +2208,84 @@
     const end = new Date(date); end.setHours(end.getHours() + 1);
     document.getElementById("ge-start").value = dateToLocalInput(start);
     document.getElementById("ge-end").value = dateToLocalInput(end);
+  }
+
+  function renderGcalMonthGrid() {
+    const anchor = new Date(gcalAnchorDate);
+    const y = anchor.getFullYear();
+    const m = anchor.getMonth();
+    const firstDow = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m+1, 0).getDate();
+    const prevMonthDays = new Date(y, m, 0).getDate();
+    const todayIsoStr = todayISO();
+
+    const wrap = document.createElement("div");
+    wrap.className = "gcal-month-wrap";
+
+    const header = document.createElement("div");
+    header.className = "gcal-month-header";
+    const dows = ["일","월","화","수","목","금","토"];
+    dows.forEach((d, i) => {
+      const cell = document.createElement("div");
+      cell.className = "gcal-month-dow" + (i === 0 ? " sun" : "");
+      cell.textContent = d;
+      header.appendChild(cell);
+    });
+    wrap.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "gcal-month-body";
+
+    const cells = [];
+    for (let i = 0; i < firstDow; i++) {
+      cells.push({ y, m: m-1, d: prevMonthDays - firstDow + 1 + i, other: true });
+    }
+    for (let dd = 1; dd <= daysInMonth; dd++) {
+      cells.push({ y, m, d: dd, other: false });
+    }
+    while (cells.length < 42) {
+      const last = cells[cells.length-1];
+      const next = new Date(last.y, last.m, last.d + 1);
+      cells.push({ y: next.getFullYear(), m: next.getMonth(), d: next.getDate(), other: true });
+    }
+
+    cells.forEach((c, idx) => {
+      const dt = new Date(c.y, c.m, c.d);
+      const iso = dateToISO(dt);
+      const cell = document.createElement("div");
+      cell.className = "gcal-month-cell" + (c.other ? " other" : "") + (iso === todayIsoStr ? " today" : "");
+      const dow = idx % 7;
+      cell.innerHTML = '<div class="d-num' + (dow === 0 ? ' sun' : '') + '">' + c.d + '</div>';
+      const dayEvents = gcalEvents.filter(e => eventDateKey(e) === iso);
+      dayEvents.slice(0, 4).forEach(e => {
+        const ev = document.createElement("div");
+        ev.className = "gcal-month-event";
+        ev.style.borderLeftColor = e._cal.backgroundColor;
+        const time = e.start.dateTime
+          ? pad2(new Date(e.start.dateTime).getHours()) + ":" + pad2(new Date(e.start.dateTime).getMinutes()) + " "
+          : "";
+        ev.textContent = time + (e.summary || "(제목 없음)");
+        ev.title = (e.summary || "") + " · " + e._cal.summary;
+        ev.addEventListener("click", (clickEv) => { clickEv.stopPropagation(); openGcalModal(e); });
+        cell.appendChild(ev);
+      });
+      if (dayEvents.length > 4) {
+        const more = document.createElement("div");
+        more.className = "gcal-month-more";
+        more.textContent = "+" + (dayEvents.length - 4) + "개";
+        cell.appendChild(more);
+      }
+      cell.addEventListener("click", (ev) => {
+        if (ev.target !== cell && !ev.target.classList.contains("d-num")) return;
+        const clicked = new Date(dt);
+        clicked.setHours(9, 0, 0, 0);
+        openGcalModalWithTime(clicked);
+      });
+      body.appendChild(cell);
+    });
+
+    wrap.appendChild(body);
+    return wrap;
   }
 
   function fmtEventTime(e) {
@@ -2168,27 +2338,69 @@
       return;
     }
 
-    // Week navigation bar (now includes + 새 일정 / 로그아웃)
+    // Navigation bar (mode-aware labels + view toggle + zoom + actions)
     const navBar = document.createElement("div");
     navBar.className = "gcal-grid-nav";
-    const monday = getMondayOfWeek(gcalAnchorDate);
+    const navLabels = {
+      day: ["‹ 어제", "오늘", "내일 ›"],
+      week: ["‹ 이전 주", "이번 주", "다음 주 ›"],
+      month: ["‹ 이전 달", "이번 달", "다음 달 ›"],
+    }[gcalViewMode];
+    let navTitle;
+    if (gcalViewMode === "month") {
+      navTitle = gcalAnchorDate.getFullYear() + "년 " + (gcalAnchorDate.getMonth()+1) + "월";
+    } else if (gcalViewMode === "day") {
+      const dows = ["일","월","화","수","목","금","토"];
+      navTitle = gcalAnchorDate.getFullYear() + "년 " + (gcalAnchorDate.getMonth()+1) + "월 " +
+        gcalAnchorDate.getDate() + "일 (" + dows[gcalAnchorDate.getDay()] + ")";
+    } else {
+      navTitle = weekTitleFromMonday(getMondayOfWeek(gcalAnchorDate));
+    }
+    const viewToggleHTML =
+      '<span class="view-toggle">' +
+        '<button data-view="day"' + (gcalViewMode === "day" ? ' class="active"' : '') + '>일</button>' +
+        '<button data-view="week"' + (gcalViewMode === "week" ? ' class="active"' : '') + '>주</button>' +
+        '<button data-view="month"' + (gcalViewMode === "month" ? ' class="active"' : '') + '>월</button>' +
+      '</span>';
+    const zoomHTML = gcalViewMode !== "month"
+      ? '<span class="zoom-group">' +
+          '<button id="gcalZoomOut" title="축소">−</button>' +
+          '<button id="gcalZoomIn" title="확대">＋</button>' +
+        '</span>'
+      : "";
     navBar.innerHTML =
-      '<button id="gcalPrevBtn">‹ 이전 주</button>' +
-      '<button id="gcalTodayBtn">이번 주</button>' +
-      '<button id="gcalNextBtn">다음 주 ›</button>' +
-      '<span class="nav-title">' + weekTitleFromMonday(monday) + '</span>' +
+      '<button id="gcalPrevBtn">' + navLabels[0] + '</button>' +
+      '<button id="gcalTodayBtn">' + navLabels[1] + '</button>' +
+      '<button id="gcalNextBtn">' + navLabels[2] + '</button>' +
+      '<span class="nav-title">' + navTitle + '</span>' +
       '<span class="nav-spacer"></span>' +
+      viewToggleHTML + zoomHTML +
       '<button id="gcalNewBtn" class="primary">＋ 새 일정</button>' +
       '<button id="gcalLogoutBtn">로그아웃</button>';
     view.appendChild(navBar);
-    document.getElementById("gcalPrevBtn").addEventListener("click", () => gcalNavigateWeek(-7));
-    document.getElementById("gcalTodayBtn").addEventListener("click", () => gcalNavigateWeek(0, true));
-    document.getElementById("gcalNextBtn").addEventListener("click", () => gcalNavigateWeek(7));
+    document.getElementById("gcalPrevBtn").addEventListener("click", () => gcalNavigate(-1));
+    document.getElementById("gcalTodayBtn").addEventListener("click", () => gcalNavigate(0));
+    document.getElementById("gcalNextBtn").addEventListener("click", () => gcalNavigate(1));
+    navBar.querySelectorAll(".view-toggle button").forEach(b => {
+      b.addEventListener("click", () => gcalSetViewMode(b.dataset.view));
+    });
+    if (gcalViewMode !== "month") {
+      document.getElementById("gcalZoomOut").addEventListener("click", () => gcalSetHourHeight(-8));
+      document.getElementById("gcalZoomIn").addEventListener("click", () => gcalSetHourHeight(8));
+    }
     document.getElementById("gcalNewBtn").addEventListener("click", () => openGcalModal(null));
     document.getElementById("gcalLogoutBtn").addEventListener("click", gcalLogout);
 
-    // Week grid
-    const grid = renderGcalWeekGrid();
+    // Grid (dispatch by view mode)
+    let grid;
+    if (gcalViewMode === "day") {
+      grid = renderGcalTimeGrid([new Date(gcalAnchorDate)]);
+    } else if (gcalViewMode === "month") {
+      grid = renderGcalMonthGrid();
+    } else {
+      const monday = getMondayOfWeek(gcalAnchorDate);
+      grid = renderGcalTimeGrid(getDaysOfWeek(monday));
+    }
     view.appendChild(grid);
     if (gcalLoading) {
       const overlay = document.createElement("div");
