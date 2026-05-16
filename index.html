@@ -757,6 +757,28 @@
     letter-spacing: -0.005em;
   }
   .gcal-chips-bulk:hover { text-decoration: underline; }
+  .gcal-add-cal {
+    display: flex; gap: 6px; margin-top: 12px;
+    padding-top: 12px; border-top: 1px solid var(--line);
+  }
+  .gcal-add-cal input {
+    flex: 1; max-width: 360px;
+    border: 1px solid var(--line); border-radius: 3px;
+    padding: 8px 11px; font-size: 12.5px; font-family: inherit;
+    background: var(--bg); color: var(--text); font-weight: 500;
+  }
+  .gcal-add-cal input::placeholder { color: var(--muted-2); font-weight: 400; }
+  .gcal-add-cal input:focus { outline: none; border-color: var(--ink); background: var(--card); }
+  .gcal-add-cal button {
+    background: var(--ink); color: var(--lime); border: none;
+    padding: 0 16px; font-size: 12px; font-weight: 700;
+    border-radius: 3px; cursor: pointer; letter-spacing: -0.005em;
+    transition: background .12s;
+  }
+  .gcal-add-cal button:hover { background: var(--blue); }
+  [data-theme="dark"] .gcal-add-cal button { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .gcal-add-cal button:hover { background: var(--blue); color: var(--lime); }
+  [data-theme="dark"] .gcal-add-cal input:focus { background: rgba(255,255,255,0.10); border-color: var(--lime); }
   .gcal-grid-wrap {
     background: var(--card); border: 1px solid var(--line);
     border-radius: 0 0 3px 3px; box-shadow: var(--shadow-md);
@@ -2107,6 +2129,43 @@
     gcalLoading = false; renderGcalView();
   }
 
+  async function addCalendarByEmail(rawEmail) {
+    const email = (rawEmail || "").trim().toLowerCase();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert("올바른 이메일 형식이 아닙니다.");
+      return;
+    }
+    if (gcalCalendars.some(c => c.id === email)) {
+      alert("이미 추가된 캘린더입니다.");
+      return;
+    }
+    gcalLoading = true; renderGcalView();
+    try {
+      await gcalApi("/users/me/calendarList", {
+        method: "POST",
+        body: JSON.stringify({ id: email }),
+      });
+      await loadGcalCalendars();
+      // 새로 추가한 캘린더는 자동으로 표시되도록 hidden 목록에서 제거
+      gcalHiddenCalIds.delete(email);
+      saveGcalHidden();
+      await loadGcalEvents();
+    } catch (err) {
+      console.error("[gcal] addCalendar failed:", err);
+      let msg = err.message || "";
+      if (/not found|404/i.test(msg)) {
+        msg = "캘린더를 찾을 수 없습니다.\n해당 동료가 본인에게 캘린더를 공유했는지 확인해주세요.";
+      } else if (/409|already|duplicate/i.test(msg)) {
+        msg = "이미 추가된 캘린더입니다.";
+      } else if (/403|forbidden/i.test(msg)) {
+        msg = "접근 권한이 없습니다.\n캘린더 공유 권한을 받았는지 확인해주세요.";
+      }
+      alert("캘린더 추가 실패:\n" + msg);
+    }
+    gcalLoading = false; renderGcalView();
+  }
+
   // ===== Week grid helpers =====
   function getMondayOfWeek(date) {
     const d = new Date(date);
@@ -2581,7 +2640,11 @@
       '<span class="gcal-chips-desc">클릭해서 표시/숨김 · 본인 캘린더만 기본 활성</span>' +
       '<button class="gcal-chips-bulk" id="gcalBulkBtn">' + (hiddenCount > 0 ? "전부 켜기" : "본인만 남기기") + '</button>' +
       '</div>' +
-      '<div class="gcal-cal-chips" id="gcal-cal-chips"></div>';
+      '<div class="gcal-cal-chips" id="gcal-cal-chips"></div>' +
+      '<form class="gcal-add-cal" id="gcalAddCalForm">' +
+        '<input type="email" id="gcalAddCalInput" placeholder="동료 이메일로 캘린더 추가 (예: colleague@gainge.com)" autocomplete="off" />' +
+        '<button type="submit">＋ 캘린더 추가</button>' +
+      '</form>';
     view.appendChild(chipsBox);
 
     const chipsEl = document.getElementById("gcal-cal-chips");
@@ -2616,6 +2679,14 @@
       gcalLoading = true; renderGcalView();
       try { await loadGcalEvents(); } catch (e) { console.error(e); }
       gcalLoading = false; renderGcalView();
+    });
+
+    document.getElementById("gcalAddCalForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("gcalAddCalInput");
+      const email = input.value;
+      input.value = "";
+      await addCalendarByEmail(email);
     });
   }
 
