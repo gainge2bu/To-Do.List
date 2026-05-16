@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tim의 일정 관리 시트 · 임종은 컨설턴트</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --ink: #000046;
@@ -531,7 +532,7 @@
   .cal-task.q4 { border-left-color: var(--line-strong); color: var(--muted); }
   .cal-task.more { background: transparent; color: var(--muted); border-left: none; }
 
-  /* ===== Google Calendar ===== */
+  /* ===== Google Calendar (OAuth) ===== */
   .gcal-open {
     margin-left: auto; font-size: 11.5px; font-weight: 700;
     color: var(--blue); text-decoration: none; letter-spacing: -0.005em;
@@ -539,65 +540,207 @@
     transition: all .12s;
   }
   .gcal-open:hover { background: var(--blue); color: var(--lime); }
-  .gcal-settings {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    padding: 12px 14px; background: var(--card);
-    border: 1px solid var(--line); border-radius: 3px;
-    margin-bottom: 10px; box-shadow: var(--shadow-sm);
+
+  /* Login box */
+  .gcal-login-box {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 3px; box-shadow: var(--shadow-md);
+    padding: 60px 40px; text-align: center;
   }
-  .gcal-settings-label {
-    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
-    color: var(--muted); text-transform: uppercase;
+  .gcal-login-title {
+    font-size: 17px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.015em; margin-bottom: 10px;
   }
-  .gcal-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 200px; }
-  .gcal-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 4px 4px 10px; background: var(--blue-tint); color: var(--ink);
-    border: 1px solid var(--blue-tint); border-radius: 14px;
-    font-size: 11.5px; font-weight: 600;
+  .gcal-login-desc {
+    font-size: 13px; color: var(--muted); max-width: 520px;
+    margin: 0 auto 24px; line-height: 1.65;
   }
-  .gcal-chip.self { background: var(--lime-soft); border-color: var(--lime); }
-  .gcal-chip .tag {
-    font-size: 9.5px; font-weight: 700; color: var(--muted);
-    background: rgba(255,255,255,.6); padding: 1px 5px; border-radius: 8px;
-    margin-left: 2px;
+  .gcal-login-btn {
+    background: var(--ink); color: var(--card); border: none;
+    height: 46px; padding: 0 24px; border-radius: 3px;
+    font-size: 14px; font-weight: 700; letter-spacing: -0.005em;
+    display: inline-flex; align-items: center; gap: 12px; cursor: pointer;
+    transition: all .12s; box-shadow: 0 2px 0 var(--ink);
   }
-  .gcal-chip.self .tag { color: var(--ink); background: rgba(255,255,255,.5); }
-  .gcal-chip .remove {
-    background: transparent; border: none; cursor: pointer;
-    color: var(--muted); padding: 0 6px; line-height: 1; font-size: 15px;
-    border-radius: 50%;
+  .gcal-login-btn:hover { background: var(--blue); color: var(--lime); }
+  .gcal-login-btn .g-icon {
+    width: 24px; height: 24px; background: var(--lime);
+    color: var(--ink); border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 12px;
   }
-  .gcal-chip .remove:hover { color: var(--danger); background: rgba(200,16,46,.1); }
-  .gcal-add { display: flex; gap: 6px; }
-  .gcal-add input {
-    border: 1px solid var(--line); border-radius: 3px;
-    padding: 6px 10px; font-size: 12px; font-family: inherit;
-    background: var(--bg); width: 240px; color: var(--text); font-weight: 500;
-  }
-  .gcal-add input:focus { outline: none; border-color: var(--ink); background: #fff; }
-  .gcal-add button {
-    background: var(--ink); color: var(--lime); border: none;
-    padding: 0 14px; font-size: 12px; font-weight: 700;
-    border-radius: 3px; letter-spacing: -0.005em;
-  }
-  .gcal-add button:hover { background: var(--blue); }
-  .gcal-hint {
-    font-size: 11.5px; color: var(--muted); margin-bottom: 12px;
-    padding: 8px 12px; background: var(--bg);
-    border-left: 2px solid var(--line-strong); border-radius: 2px;
+  .gcal-login-foot {
+    margin-top: 20px; font-size: 11.5px; color: var(--muted-2);
     font-weight: 500;
   }
-  .gcal-frame-wrap {
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: 3px; overflow: hidden; box-shadow: var(--shadow-md);
-    height: 760px;
+
+  /* Toolbar (logged in) */
+  .gcal-toolbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 12px 14px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 3px;
+    margin-bottom: 14px; box-shadow: var(--shadow-sm);
   }
-  .gcal-frame-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+  .gcal-cal-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 200px; }
+  .gcal-cal-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 11px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 14px;
+    font-size: 11.5px; font-weight: 600; color: var(--ink);
+    cursor: pointer; transition: all .12s; user-select: none;
+  }
+  .gcal-cal-chip:hover { border-color: var(--ink); }
+  .gcal-cal-chip.hidden { opacity: .35; text-decoration: line-through; }
+  .gcal-cal-chip .color-dot {
+    width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  }
+  .gcal-cal-chip .tag {
+    font-size: 9.5px; font-weight: 700; color: var(--muted);
+    background: var(--bg); padding: 1px 5px; border-radius: 8px;
+  }
+  .gcal-action-btn {
+    background: var(--ink); color: var(--lime); border: none;
+    padding: 8px 14px; border-radius: 3px; cursor: pointer;
+    font-size: 12px; font-weight: 700; letter-spacing: -0.005em;
+    transition: background .12s;
+  }
+  .gcal-action-btn:hover { background: var(--blue); }
+  .gcal-action-btn.outline {
+    background: var(--card); color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  .gcal-action-btn.outline:hover { background: var(--bg); color: var(--ink); border-color: var(--ink); }
+
+  /* Agenda */
+  .gcal-agenda {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 3px; box-shadow: var(--shadow-md);
+    padding: 4px 16px;
+  }
+  .gcal-day-group { border-bottom: 1px solid var(--line); padding: 14px 0; }
+  .gcal-day-group:last-child { border-bottom: none; }
+  .gcal-day-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .gcal-day-label {
+    font-size: 11px; font-weight: 800; color: var(--blue);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+  .gcal-day-label.today {
+    color: var(--ink); background: var(--lime);
+    padding: 2px 8px; border-radius: 2px;
+  }
+  .gcal-day-date {
+    font-size: 12.5px; color: var(--muted); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .gcal-event {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 6px; border-radius: 3px; cursor: pointer;
+    transition: background .1s; border-bottom: 1px solid var(--line);
+  }
+  .gcal-event:last-child { border-bottom: none; }
+  .gcal-event:hover { background: var(--bg); }
+  .gcal-event-time {
+    font-size: 11.5px; color: var(--ink); font-weight: 700;
+    font-variant-numeric: tabular-nums; width: 100px; flex-shrink: 0;
+    letter-spacing: -0.005em;
+  }
+  .gcal-event-time.allday { color: var(--muted); font-weight: 600; }
+  .gcal-event-bar {
+    width: 3px; align-self: stretch; border-radius: 2px; flex-shrink: 0;
+    min-height: 24px;
+  }
+  .gcal-event-body { flex: 1; min-width: 0; }
+  .gcal-event-title {
+    font-size: 13.5px; color: var(--ink); font-weight: 600;
+    letter-spacing: -0.005em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .gcal-event-meta {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .gcal-event-meta .ro {
+    background: var(--bg); padding: 1px 6px; border-radius: 2px;
+    font-size: 9.5px; font-weight: 700; color: var(--muted);
+    letter-spacing: 0.04em;
+  }
   .gcal-empty {
     padding: 60px 20px; text-align: center; color: var(--muted);
     font-size: 13px; font-weight: 500;
   }
+  .gcal-user-pill {
+    font-size: 11.5px; color: var(--muted); font-weight: 600;
+    padding: 4px 10px; background: var(--bg); border-radius: 14px;
+  }
+
+  /* Event Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0, 0, 70, .35);
+    z-index: 1000; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px); padding: 20px;
+  }
+  .modal-backdrop[hidden] { display: none; }
+  .modal {
+    background: var(--card); border-radius: 4px;
+    border: 1px solid var(--line); box-shadow: 0 8px 40px rgba(0, 0, 70, .25);
+    width: 100%; max-width: 480px;
+    max-height: 90vh; overflow: auto;
+  }
+  .modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px; border-bottom: 1px solid var(--line);
+  }
+  .modal-head h3 {
+    margin: 0; font-size: 15px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.015em;
+  }
+  .modal-close {
+    background: transparent; border: none; font-size: 22px;
+    color: var(--muted); cursor: pointer; line-height: 1; padding: 2px 8px;
+    border-radius: 2px;
+  }
+  .modal-close:hover { background: var(--danger-tint); color: var(--danger); }
+  .modal form { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .modal form label { display: flex; flex-direction: column; gap: 5px; }
+  .modal form label span {
+    font-size: 10.5px; font-weight: 700; color: var(--muted);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .modal form input, .modal form select, .modal form textarea {
+    border: 1px solid var(--line); border-radius: 3px;
+    padding: 9px 11px; font-size: 13px; font-family: inherit;
+    background: var(--bg); color: var(--text); font-weight: 500;
+  }
+  .modal form textarea { resize: vertical; min-height: 60px; }
+  .modal form input:focus, .modal form select:focus, .modal form textarea:focus {
+    outline: none; border-color: var(--ink); background: #fff;
+  }
+  .modal form input:disabled, .modal form select:disabled, .modal form textarea:disabled {
+    opacity: .6; cursor: not-allowed;
+  }
+  .modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-foot {
+    display: flex; gap: 8px; padding-top: 12px; margin-top: 4px;
+    border-top: 1px solid var(--line); align-items: center;
+  }
+  .modal-foot .spacer { flex: 1; }
+  .modal-foot button {
+    border: none; border-radius: 3px;
+    padding: 9px 16px; font-size: 12.5px; font-weight: 700;
+    letter-spacing: -0.005em; cursor: pointer; transition: all .12s;
+  }
+  .modal-foot .btn-cancel { background: var(--bg); color: var(--muted); }
+  .modal-foot .btn-cancel:hover { background: var(--line); color: var(--ink); }
+  .modal-foot .btn-save { background: var(--ink); color: var(--lime); }
+  .modal-foot .btn-save:hover { background: var(--blue); }
+  .modal-foot .btn-delete {
+    background: var(--card); color: var(--danger);
+    border: 1px solid var(--danger);
+  }
+  .modal-foot .btn-delete:hover { background: var(--danger); color: #fff; }
 
   /* ===== Filter chips ===== */
   .filter-bar {
@@ -889,29 +1032,48 @@
     </div>
   </section>
 
-  <!-- ===== Google Calendar View ===== -->
-  <section class="view" id="view-gcal">
-    <div class="section-head">
-      <span class="idx">G</span>
-      <span class="title">팀 캘린더 · Google</span>
-      <span class="desc">Tim님과 동료들의 일정 한눈에 (읽기 전용)</span>
-      <a href="https://calendar.google.com" target="_blank" rel="noopener" class="gcal-open">구글 캘린더 본 앱 ↗</a>
-    </div>
-    <div class="gcal-settings">
-      <span class="gcal-settings-label">표시 중인 캘린더</span>
-      <div class="gcal-chips" id="gcal-chips"></div>
-      <form class="gcal-add" id="gcal-add">
-        <input type="email" id="gcal-add-input" placeholder="동료 이메일 (예: colleague@gainge.com)" />
-        <button type="submit">＋ 추가</button>
+  <!-- ===== Google Calendar View (OAuth-powered) ===== -->
+  <section class="view" id="view-gcal"></section>
+
+  <!-- ===== Event Edit Modal ===== -->
+  <div class="modal-backdrop" id="gcalModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h3 id="gcalModalTitle">일정 편집</h3>
+        <button type="button" class="modal-close" id="gcalModalClose" title="닫기">×</button>
+      </div>
+      <form id="gcalEventForm">
+        <label>
+          <span>제목</span>
+          <input type="text" id="ge-title" required />
+        </label>
+        <div class="modal-grid-2">
+          <label>
+            <span>시작</span>
+            <input type="datetime-local" id="ge-start" required />
+          </label>
+          <label>
+            <span>종료</span>
+            <input type="datetime-local" id="ge-end" required />
+          </label>
+        </div>
+        <label>
+          <span>캘린더</span>
+          <select id="ge-calendar"></select>
+        </label>
+        <label>
+          <span>설명 (선택)</span>
+          <textarea id="ge-desc" rows="3"></textarea>
+        </label>
+        <div class="modal-foot">
+          <button type="button" class="btn-delete" id="ge-delete" hidden>삭제</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn-cancel" id="ge-cancel">취소</button>
+          <button type="submit" class="btn-save">저장</button>
+        </div>
       </form>
     </div>
-    <div class="gcal-hint" id="gcal-hint">
-      ⓘ 보려면 같은 브라우저에서 구글 계정(gainge.com)에 로그인되어 있어야 하고, 동료 캘린더는 공유 권한이 있어야 합니다.
-    </div>
-    <div class="gcal-frame-wrap">
-      <iframe id="gcal-iframe" src="about:blank" frameborder="0" scrolling="no"></iframe>
-    </div>
-  </section>
+  </div>
 
   <!-- ===== All View ===== -->
   <section class="view" id="view-all">
@@ -937,7 +1099,7 @@
       <div><strong>Business Is Love</strong> · 가인지컨설팅그룹</div>
       <div class="footer-credit">제작 · 임종은 컨설턴트(Tim)</div>
     </div>
-    <span class="right">일정 관리 시트 · v1.5</span>
+    <span class="right">일정 관리 시트 · v1.6 · Google OAuth</span>
   </footer>
 
 </div>
@@ -1312,107 +1474,450 @@
     localStorage.setItem(SEEDED_KEY, "1");
   }
 
-  // ===== Google Calendar 임베드 =====
-  const GCAL_KEY = "gainge_consultant_gcal_v1";
-  const GCAL_DEFAULT = ["tim@gainge.com"];
-  const GCAL_MIGRATION_KEY = "gainge_consultant_gcal_migrated_tim_v1";
-  let gcalEmails = loadGcalEmails();
+  // ===== Google Calendar API (OAuth) =====
+  const GCAL_CLIENT_ID = "523968136299-j66mhtuh245224t0h29e2j4imkha05kp.apps.googleusercontent.com";
+  const GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
+  const GCAL_TOKEN_KEY = "gainge_gcal_token_v2";
+  const GCAL_HIDDEN_KEY = "gainge_gcal_hidden_v2";
+  const GCAL_DAYS_AHEAD = 30;
 
-  // 기존 기본값(2bu@gainge.com)을 tim@gainge.com으로 일회성 마이그레이션
-  if (!localStorage.getItem(GCAL_MIGRATION_KEY)) {
-    const oldIdx = gcalEmails.indexOf("2bu@gainge.com");
-    if (oldIdx >= 0) {
-      if (!gcalEmails.includes("tim@gainge.com")) {
-        gcalEmails[oldIdx] = "tim@gainge.com";
-      } else {
-        gcalEmails.splice(oldIdx, 1);
-      }
-      saveGcalEmails();
-    }
-    localStorage.setItem(GCAL_MIGRATION_KEY, "1");
-  }
+  let gcalToken = null;
+  let gcalCalendars = [];
+  let gcalEvents = [];
+  let gcalTokenClient = null;
+  let gcalHiddenCalIds = new Set();
+  let gcalEditEventId = null;
+  let gcalEditCalendarId = null;
+  let gcalLoading = false;
 
-  function loadGcalEmails() {
+  function pad2(n) { return String(n).padStart(2, "0"); }
+
+  function loadGcalTokenFromStorage() {
     try {
-      const raw = localStorage.getItem(GCAL_KEY);
-      return raw ? JSON.parse(raw) : GCAL_DEFAULT.slice();
-    } catch (e) { return GCAL_DEFAULT.slice(); }
+      const raw = sessionStorage.getItem(GCAL_TOKEN_KEY);
+      if (!raw) return null;
+      const t = JSON.parse(raw);
+      if (!t || !t.access_token || t.expires_at <= Date.now() + 60000) return null;
+      return t;
+    } catch (e) { return null; }
   }
-  function saveGcalEmails() { localStorage.setItem(GCAL_KEY, JSON.stringify(gcalEmails)); }
+  function saveGcalTokenToStorage(t) { sessionStorage.setItem(GCAL_TOKEN_KEY, JSON.stringify(t)); }
+  function clearGcalTokenFromStorage() { sessionStorage.removeItem(GCAL_TOKEN_KEY); }
 
-  function gcalEmbedUrl(emails) {
-    if (!emails.length) return "";
-    const palette = ["%23000F9F", "%23C8102E", "%23000046", "%232BA84A", "%23E8A33D", "%23805AD5", "%23DD6B20"];
-    const base = "https://calendar.google.com/calendar/embed?";
-    const params = [
-      "ctz=Asia%2FSeoul",
-      "wkst=2",
-      "mode=WEEK",
-      "showTitle=0",
-      "showPrint=0",
-      "showCalendars=1",
-      "showTz=0",
-      "showTabs=1",
-      "showDate=1",
-      "showNav=1",
-      "bgcolor=%23FFFFFF",
-    ];
-    emails.forEach((e, i) => {
-      params.push("src=" + encodeURIComponent(e));
-      params.push("color=" + palette[i % palette.length]);
+  function loadGcalHidden() {
+    try {
+      const raw = localStorage.getItem(GCAL_HIDDEN_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch (e) { return new Set(); }
+  }
+  function saveGcalHidden() {
+    localStorage.setItem(GCAL_HIDDEN_KEY, JSON.stringify(Array.from(gcalHiddenCalIds)));
+  }
+
+  function ensureGoogleAuth(cb) {
+    if (typeof google !== "undefined" && google.accounts && google.accounts.oauth2) {
+      if (!gcalTokenClient) {
+        gcalTokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GCAL_CLIENT_ID,
+          scope: GCAL_SCOPE,
+          callback: handleTokenResponse,
+        });
+      }
+      cb && cb();
+    } else {
+      setTimeout(() => ensureGoogleAuth(cb), 200);
+    }
+  }
+
+  function handleTokenResponse(resp) {
+    if (resp.error) {
+      alert("Google 로그인 실패: " + resp.error);
+      return;
+    }
+    gcalToken = {
+      access_token: resp.access_token,
+      expires_at: Date.now() + ((resp.expires_in || 3600) - 60) * 1000,
+    };
+    saveGcalTokenToStorage(gcalToken);
+    initGcalAfterLogin();
+  }
+
+  async function initGcalAfterLogin() {
+    gcalLoading = true;
+    renderGcalView();
+    try {
+      await loadGcalCalendars();
+      await loadGcalEvents();
+    } catch (e) {
+      console.error("Calendar load failed:", e);
+    }
+    gcalLoading = false;
+    renderGcalView();
+  }
+
+  function gcalLogin() {
+    ensureGoogleAuth(() => {
+      gcalTokenClient.requestAccessToken({ prompt: gcalToken ? "" : "consent" });
     });
-    return base + params.join("&");
   }
 
-  function renderGcal() {
-    const chipsEl = document.getElementById("gcal-chips");
-    chipsEl.innerHTML = "";
-    gcalEmails.forEach((email, idx) => {
+  function gcalLogout() {
+    if (gcalToken && gcalToken.access_token && typeof google !== "undefined") {
+      try { google.accounts.oauth2.revoke(gcalToken.access_token, () => {}); } catch (e) {}
+    }
+    gcalToken = null;
+    gcalCalendars = [];
+    gcalEvents = [];
+    clearGcalTokenFromStorage();
+    renderGcalView();
+  }
+
+  async function gcalApi(path, opts) {
+    opts = opts || {};
+    if (!gcalToken || gcalToken.expires_at <= Date.now()) {
+      clearGcalTokenFromStorage();
+      gcalToken = null;
+      renderGcalView();
+      throw new Error("로그인 필요");
+    }
+    const url = "https://www.googleapis.com/calendar/v3" + path;
+    const r = await fetch(url, Object.assign({}, opts, {
+      headers: Object.assign({
+        "Authorization": "Bearer " + gcalToken.access_token,
+        "Content-Type": "application/json",
+      }, opts.headers || {}),
+    }));
+    if (r.status === 401 || r.status === 403) {
+      clearGcalTokenFromStorage();
+      gcalToken = null;
+      renderGcalView();
+      throw new Error("권한 만료 — 다시 로그인하세요.");
+    }
+    if (!r.ok) {
+      const text = await r.text();
+      throw new Error("API " + r.status + ": " + text);
+    }
+    if (r.status === 204) return null;
+    return r.json();
+  }
+
+  async function loadGcalCalendars() {
+    const data = await gcalApi("/users/me/calendarList?minAccessRole=reader");
+    gcalCalendars = (data.items || []).map(c => ({
+      id: c.id,
+      summary: c.summaryOverride || c.summary || c.id,
+      backgroundColor: c.backgroundColor || "#000F9F",
+      accessRole: c.accessRole,
+      primary: c.primary === true,
+      writable: c.accessRole === "owner" || c.accessRole === "writer",
+    }));
+    gcalCalendars.sort((a, b) => {
+      if (a.primary !== b.primary) return a.primary ? -1 : 1;
+      if (a.writable !== b.writable) return a.writable ? -1 : 1;
+      return a.summary.localeCompare(b.summary);
+    });
+  }
+
+  async function loadGcalEvents() {
+    const now = new Date();
+    const start = new Date(now); start.setHours(0,0,0,0); start.setDate(start.getDate() - 1);
+    const end = new Date(now); end.setHours(23,59,59,999); end.setDate(end.getDate() + GCAL_DAYS_AHEAD);
+    const visible = gcalCalendars.filter(c => !gcalHiddenCalIds.has(c.id));
+    const results = await Promise.all(visible.map(async (c) => {
+      try {
+        const data = await gcalApi(
+          "/calendars/" + encodeURIComponent(c.id) +
+          "/events?timeMin=" + start.toISOString() +
+          "&timeMax=" + end.toISOString() +
+          "&singleEvents=true&orderBy=startTime&maxResults=250"
+        );
+        return (data.items || []).map(e => Object.assign({}, e, { _cal: c }));
+      } catch (err) {
+        console.warn("Event load failed:", c.id, err);
+        return [];
+      }
+    }));
+    gcalEvents = results.flat().sort((a, b) => {
+      const sa = a.start.dateTime || a.start.date;
+      const sb = b.start.dateTime || b.start.date;
+      return sa.localeCompare(sb);
+    });
+  }
+
+  function fmtEventTime(e) {
+    if (e.start.date) return "종일";
+    const s = new Date(e.start.dateTime);
+    const en = new Date(e.end.dateTime);
+    return pad2(s.getHours()) + ":" + pad2(s.getMinutes()) + " – " + pad2(en.getHours()) + ":" + pad2(en.getMinutes());
+  }
+  function eventDateKey(e) {
+    return e.start.dateTime ? e.start.dateTime.slice(0,10) : e.start.date;
+  }
+  function fmtDayLabel(iso) {
+    const today = todayISO();
+    if (iso === today) return "오늘";
+    const d = daysBetween(iso);
+    if (d === 1) return "내일";
+    if (d === -1) return "어제";
+    if (d < 0) return Math.abs(d) + "일 전";
+    return "D-" + d;
+  }
+  function fmtDayDate(iso) {
+    const d = new Date(iso);
+    const dows = ["일","월","화","수","목","금","토"];
+    return (d.getMonth()+1) + "/" + d.getDate() + " (" + dows[d.getDay()] + ")";
+  }
+
+  function renderGcalView() {
+    const view = document.getElementById("view-gcal");
+    view.innerHTML = "";
+
+    const head = document.createElement("div");
+    head.className = "section-head";
+    head.innerHTML =
+      '<span class="idx">G</span>' +
+      '<span class="title">팀 캘린더 · Google</span>' +
+      '<span class="desc">' + (gcalToken ? "다가오는 " + GCAL_DAYS_AHEAD + "일 · 자동 동기화" : "Google 로그인 후 본인+공유 캘린더 자동 로드") + '</span>' +
+      '<a href="https://calendar.google.com" target="_blank" rel="noopener" class="gcal-open">구글 캘린더 본 앱 ↗</a>';
+    view.appendChild(head);
+
+    if (!gcalToken) {
+      const box = document.createElement("div");
+      box.className = "gcal-login-box";
+      box.innerHTML =
+        '<div class="gcal-login-title">팀 캘린더 사용을 위해 Google 로그인이 필요합니다</div>' +
+        '<div class="gcal-login-desc">로그인하면 본인 캘린더와 가인지컨설팅그룹 동료들이 공유한 모든 캘린더가 자동으로 표시됩니다.<br>일정 추가·수정·삭제도 바로 가능합니다.</div>' +
+        '<button class="gcal-login-btn" id="gcalLoginBtn"><span class="g-icon">G</span> Google 계정으로 로그인</button>' +
+        '<div class="gcal-login-foot">권한: 캘린더 보기 + 본인 일정 추가·수정·삭제 · gainge.com 내부용</div>';
+      view.appendChild(box);
+      document.getElementById("gcalLoginBtn").addEventListener("click", gcalLogin);
+      return;
+    }
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "gcal-toolbar";
+    toolbar.innerHTML =
+      '<div class="gcal-cal-chips" id="gcal-cal-chips"></div>' +
+      '<button class="gcal-action-btn" id="gcalNewBtn">＋ 새 일정</button>' +
+      '<button class="gcal-action-btn outline" id="gcalLogoutBtn">로그아웃</button>';
+    view.appendChild(toolbar);
+
+    const chipsEl = document.getElementById("gcal-cal-chips");
+    gcalCalendars.forEach(c => {
       const chip = document.createElement("span");
-      chip.className = "gcal-chip" + (idx === 0 ? " self" : "");
-      chip.innerHTML = `
-        <span>${escapeHtml(email)}</span>
-        ${idx === 0 ? '<span class="tag">본인</span>' : ""}
-        <button class="remove" title="삭제">×</button>
-      `;
-      chip.querySelector(".remove").addEventListener("click", () => {
-        gcalEmails = gcalEmails.filter(e => e !== email);
-        saveGcalEmails();
-        renderGcal();
+      chip.className = "gcal-cal-chip" + (gcalHiddenCalIds.has(c.id) ? " hidden" : "");
+      chip.innerHTML =
+        '<span class="color-dot" style="background:' + c.backgroundColor + ';"></span>' +
+        '<span>' + escapeHtml(c.summary) + '</span>' +
+        (c.primary ? '<span class="tag">본인</span>' : "") +
+        (!c.writable ? '<span class="tag">RO</span>' : "");
+      chip.addEventListener("click", async () => {
+        if (gcalHiddenCalIds.has(c.id)) gcalHiddenCalIds.delete(c.id);
+        else gcalHiddenCalIds.add(c.id);
+        saveGcalHidden();
+        gcalLoading = true; renderGcalView();
+        try { await loadGcalEvents(); } catch (e) { console.error(e); }
+        gcalLoading = false; renderGcalView();
       });
       chipsEl.appendChild(chip);
     });
+    document.getElementById("gcalNewBtn").addEventListener("click", () => openGcalModal(null));
+    document.getElementById("gcalLogoutBtn").addEventListener("click", gcalLogout);
 
-    const iframe = document.getElementById("gcal-iframe");
-    if (gcalEmails.length > 0) {
-      const url = gcalEmbedUrl(gcalEmails);
-      if (iframe.dataset.lastUrl !== url) {
-        iframe.src = url;
-        iframe.dataset.lastUrl = url;
+    const agenda = document.createElement("div");
+    agenda.className = "gcal-agenda";
+    view.appendChild(agenda);
+
+    if (gcalLoading) {
+      agenda.innerHTML = '<div class="gcal-empty">불러오는 중…</div>';
+      return;
+    }
+    if (gcalEvents.length === 0) {
+      agenda.innerHTML = '<div class="gcal-empty">표시할 일정 없음 — 다가오는 ' + GCAL_DAYS_AHEAD + '일 사이.</div>';
+      return;
+    }
+
+    const groups = {};
+    gcalEvents.forEach(e => {
+      const k = eventDateKey(e);
+      if (!groups[k]) groups[k] = [];
+      groups[k].push(e);
+    });
+    const sortedKeys = Object.keys(groups).sort();
+    const today = todayISO();
+    sortedKeys.forEach(dateKey => {
+      const group = document.createElement("div");
+      group.className = "gcal-day-group";
+      const label = fmtDayLabel(dateKey);
+      const isToday = dateKey === today;
+      group.innerHTML =
+        '<div class="gcal-day-head">' +
+        '<span class="gcal-day-label' + (isToday ? ' today' : '') + '">' + label + '</span>' +
+        '<span class="gcal-day-date">' + fmtDayDate(dateKey) + '</span>' +
+        '</div>';
+      groups[dateKey].forEach(e => {
+        const evEl = document.createElement("div");
+        evEl.className = "gcal-event";
+        const isAllDay = !!e.start.date;
+        evEl.innerHTML =
+          '<span class="gcal-event-time' + (isAllDay ? ' allday' : '') + '">' + fmtEventTime(e) + '</span>' +
+          '<span class="gcal-event-bar" style="background:' + e._cal.backgroundColor + ';"></span>' +
+          '<div class="gcal-event-body">' +
+          '<div class="gcal-event-title"></div>' +
+          '<div class="gcal-event-meta">' + escapeHtml(e._cal.summary) +
+          (!e._cal.writable ? '<span class="ro">RO</span>' : "") +
+          '</div></div>';
+        evEl.querySelector(".gcal-event-title").textContent = e.summary || "(제목 없음)";
+        evEl.addEventListener("click", () => openGcalModal(e));
+        group.appendChild(evEl);
+      });
+      agenda.appendChild(group);
+    });
+  }
+
+  // ===== Event Modal =====
+  function isoToLocalInput(iso) {
+    const d = new Date(iso);
+    return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate()) +
+      "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  }
+  function dateToLocalInput(d) {
+    return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate()) +
+      "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  }
+  function localInputToISO(s) { return new Date(s).toISOString(); }
+
+  function openGcalModal(event) {
+    const modal = document.getElementById("gcalModal");
+    modal.removeAttribute("hidden");
+    const titleI = document.getElementById("ge-title");
+    const startI = document.getElementById("ge-start");
+    const endI = document.getElementById("ge-end");
+    const calS = document.getElementById("ge-calendar");
+    const descI = document.getElementById("ge-desc");
+    const delBtn = document.getElementById("ge-delete");
+    const modalTitle = document.getElementById("gcalModalTitle");
+
+    calS.innerHTML = "";
+    gcalCalendars.filter(c => c.writable).forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.summary + (c.primary ? " (본인)" : "");
+      calS.appendChild(opt);
+    });
+
+    [titleI, startI, endI, descI, calS].forEach(el => el.disabled = false);
+
+    if (event) {
+      modalTitle.textContent = "일정 편집";
+      titleI.value = event.summary || "";
+      descI.value = event.description || "";
+      const sRaw = event.start.dateTime || (event.start.date + "T09:00:00");
+      const eRaw = event.end.dateTime || (event.end.date + "T10:00:00");
+      startI.value = isoToLocalInput(sRaw);
+      endI.value = isoToLocalInput(eRaw);
+      // For existing event, lock calendar (moving across calendars is complex)
+      if (event._cal.writable && !calS.querySelector('option[value="' + event._cal.id + '"]')) {
+        const opt = document.createElement("option");
+        opt.value = event._cal.id; opt.textContent = event._cal.summary;
+        calS.appendChild(opt);
+      }
+      calS.value = event._cal.id;
+      calS.disabled = true;
+      gcalEditEventId = event.id;
+      gcalEditCalendarId = event._cal.id;
+      if (event._cal.writable) {
+        delBtn.removeAttribute("hidden");
+      } else {
+        delBtn.setAttribute("hidden", "");
+        [titleI, startI, endI, descI].forEach(el => el.disabled = true);
+        modalTitle.textContent = "일정 보기 (읽기 전용)";
       }
     } else {
-      iframe.src = "about:blank";
-      iframe.dataset.lastUrl = "";
+      modalTitle.textContent = "새 일정";
+      titleI.value = "";
+      descI.value = "";
+      const now = new Date();
+      const s = new Date(now); s.setHours(now.getHours() + 1, 0, 0, 0);
+      const e = new Date(s); e.setHours(s.getHours() + 1);
+      startI.value = dateToLocalInput(s);
+      endI.value = dateToLocalInput(e);
+      delBtn.setAttribute("hidden", "");
+      gcalEditEventId = null;
+      gcalEditCalendarId = null;
+    }
+    setTimeout(() => titleI.focus(), 50);
+  }
+
+  function closeGcalModal() {
+    document.getElementById("gcalModal").setAttribute("hidden", "");
+    gcalEditEventId = null;
+    gcalEditCalendarId = null;
+  }
+
+  async function saveGcalEvent(ev) {
+    ev.preventDefault();
+    const title = document.getElementById("ge-title").value.trim();
+    if (!title) return;
+    const startVal = document.getElementById("ge-start").value;
+    const endVal = document.getElementById("ge-end").value;
+    const desc = document.getElementById("ge-desc").value;
+    const calId = document.getElementById("ge-calendar").value;
+    if (!startVal || !endVal) { alert("시작·종료 시간을 입력하세요."); return; }
+    if (new Date(endVal) <= new Date(startVal)) { alert("종료 시간이 시작 시간보다 늦어야 합니다."); return; }
+
+    const body = {
+      summary: title,
+      description: desc,
+      start: { dateTime: localInputToISO(startVal), timeZone: "Asia/Seoul" },
+      end: { dateTime: localInputToISO(endVal), timeZone: "Asia/Seoul" },
+    };
+
+    try {
+      if (gcalEditEventId) {
+        await gcalApi("/calendars/" + encodeURIComponent(gcalEditCalendarId) +
+          "/events/" + encodeURIComponent(gcalEditEventId),
+          { method: "PATCH", body: JSON.stringify(body) });
+      } else {
+        await gcalApi("/calendars/" + encodeURIComponent(calId) + "/events",
+          { method: "POST", body: JSON.stringify(body) });
+      }
+      closeGcalModal();
+      gcalLoading = true; renderGcalView();
+      await loadGcalEvents();
+      gcalLoading = false; renderGcalView();
+    } catch (err) {
+      alert("저장 실패: " + err.message);
     }
   }
 
-  document.getElementById("gcal-add").addEventListener("submit", e => {
-    e.preventDefault();
-    const input = document.getElementById("gcal-add-input");
-    const email = input.value.trim().toLowerCase();
-    if (!email) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      alert("올바른 이메일 형식이 아닙니다.");
-      return;
+  async function deleteGcalEvent() {
+    if (!gcalEditEventId) return;
+    if (!confirm("이 일정을 삭제하시겠습니까?")) return;
+    try {
+      await gcalApi("/calendars/" + encodeURIComponent(gcalEditCalendarId) +
+        "/events/" + encodeURIComponent(gcalEditEventId),
+        { method: "DELETE" });
+      closeGcalModal();
+      gcalLoading = true; renderGcalView();
+      await loadGcalEvents();
+      gcalLoading = false; renderGcalView();
+    } catch (err) {
+      alert("삭제 실패: " + err.message);
     }
-    if (gcalEmails.includes(email)) {
-      alert("이미 추가된 캘린더입니다.");
-      return;
+  }
+
+  document.getElementById("gcalModalClose").addEventListener("click", closeGcalModal);
+  document.getElementById("ge-cancel").addEventListener("click", closeGcalModal);
+  document.getElementById("ge-delete").addEventListener("click", deleteGcalEvent);
+  document.getElementById("gcalEventForm").addEventListener("submit", saveGcalEvent);
+  document.getElementById("gcalModal").addEventListener("click", (e) => {
+    if (e.target.id === "gcalModal") closeGcalModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !document.getElementById("gcalModal").hasAttribute("hidden")) {
+      closeGcalModal();
     }
-    gcalEmails.push(email);
-    saveGcalEmails();
-    input.value = "";
-    renderGcal();
   });
 
   // ===== Drag & drop: 매트릭스 4분면 간 이동 =====
@@ -1504,7 +2009,16 @@
 
   setDateDisplay();
   renderAllViews();
-  renderGcal();
+
+  // ===== Google Calendar OAuth init =====
+  gcalHiddenCalIds = loadGcalHidden();
+  gcalToken = loadGcalTokenFromStorage();
+  if (gcalToken) {
+    ensureGoogleAuth(() => initGcalAfterLogin());
+  } else {
+    ensureGoogleAuth(() => renderGcalView());
+    renderGcalView();
+  }
 </script>
 </body>
 </html>
