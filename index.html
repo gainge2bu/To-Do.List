@@ -8,43 +8,57 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
-    /* 가인지 브랜드 컬러 */
-    --bg: #000046;              /* 배경: 딥 네이비 */
-    --blue: #000F9F;            /* 메인 컬러 */
-    --lime: #ABFF52;            /* 포인트 컬러 */
+    /* === Light theme (default) === */
+    --ink: #000046;
+    --ink-2: #1A1A55;
+    --blue: #000F9F;
+    --blue-tint: #EAEBFA;
+    --blue-tint-2: #F4F5FD;
+    --lime: #ABFF52;
+    --lime-soft: #EEFFCB;
+    --lime-soft-2: #F7FFE6;
+    --bg: #F4F4EE;
+    --card: #FFFFFF;
+    --line: #E2E0D8;
+    --line-strong: #BFBDB3;
+    --muted: #6E6D66;
+    --muted-2: #9C9B92;
+    --text: #1A1A24;
+    --danger: #C8102E;
+    --danger-tint: #FBE7EB;
+    --danger-tint-2: #FEF4F6;
+    --bg-deep: #000046;
+    --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "맑은 고딕", "Malgun Gothic", "Helvetica Neue", Arial, sans-serif;
+    --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 70, 0.04);
+    --shadow-md: 0 1px 2px rgba(0, 0, 70, 0.04), 0 4px 16px rgba(0, 0, 70, 0.05);
+  }
 
-    /* Surfaces (elevations on top of bg) */
-    --card: #0E1872;
-    --bg-elev: #1A2487;
-    --bg-deep: #000046;         /* explicit navy for accents on light bg */
-
-    /* Typography */
-    --ink: #FFFFFF;             /* primary text on dark */
+  /* === Dark theme === */
+  [data-theme="dark"] {
+    --ink: #FFFFFF;
     --ink-2: rgba(255,255,255,0.85);
-    --text: #FFFFFF;
-    --muted: rgba(255,255,255,0.58);
-    --muted-2: rgba(255,255,255,0.32);
-
-    /* Lines */
+    --blue: #5366E8;                 /* 다크 위에서 가독성 위해 밝게 */
+    --blue-tint: rgba(83,102,232,0.22);
+    --blue-tint-2: rgba(83,102,232,0.12);
+    --lime: #ABFF52;
+    --lime-soft: rgba(171,255,82,0.18);
+    --lime-soft-2: rgba(171,255,82,0.07);
+    --bg: #0E0E10;                   /* 거의 검정 */
+    --card: #1A1A1D;                 /* 카드 약간 밝게 */
     --line: rgba(255,255,255,0.10);
     --line-strong: rgba(255,255,255,0.25);
-
-    /* Tints */
-    --blue-tint: rgba(0,15,159,0.45);
-    --blue-tint-2: rgba(0,15,159,0.22);
-    --lime-soft: rgba(171,255,82,0.20);
-    --lime-soft-2: rgba(171,255,82,0.08);
-
-    /* Status */
+    --muted: rgba(255,255,255,0.58);
+    --muted-2: rgba(255,255,255,0.32);
+    --text: #FFFFFF;
     --danger: #FF5C7A;
     --danger-tint: rgba(255,92,122,0.22);
     --danger-tint-2: rgba(255,92,122,0.08);
-
-    --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "맑은 고딕", "Malgun Gothic", "Helvetica Neue", Arial, sans-serif;
-    --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    --bg-deep: #000000;
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
     --shadow-md: 0 2px 4px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.5);
   }
+  [data-theme="dark"] body { color-scheme: dark; }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; background: var(--bg); color: var(--text);
@@ -1026,162 +1040,116 @@
     padding: 0 2px;
   }
 
-  /* === Dark theme overrides (브랜드: 네이비 × 블루 × 라임) === */
-  /* 로고 — 네이비 배경에 라임 'G' */
-  .logo { background: var(--bg-deep); color: var(--lime); }
-  .logo::after { background: var(--lime); }
+  /* === Dark mode adjustments (only when data-theme="dark") === */
+  /* --ink가 흰색으로 변하면서 깨지는 곳들만 보정 */
+  [data-theme="dark"] .logo { background: #000000; color: var(--lime); }
+  [data-theme="dark"] .tab.active .count { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .briefing-tag { color: #000000; }
+  [data-theme="dark"] .section-head.editing .idx { background: var(--lime); color: #000000; }
 
-  /* 헤더 액센트 (블루는 다크 배경에서 덜 보임 → 라임으로) */
-  .brand .eyebrow { color: var(--lime); }
-  .brand .tagline { color: var(--lime); }
-  .date-main .dow { color: var(--lime); }
-
-  /* 브리핑 */
-  .briefing-tag { color: var(--bg-deep); }  /* 라임 배경 위 네이비 텍스트 */
-  .briefing-text .blue { color: var(--lime); }
-  .briefing-text strong { color: var(--ink); }
-
-  /* 탭 — 라임 액센트 */
-  .tab.active { border-bottom-color: var(--lime); }
-  .tab.active .count { background: var(--lime); color: var(--bg-deep); }
-  .tab .count { background: rgba(255,255,255,0.10); color: var(--muted); }
-
-  /* 섹션 헤더 라벨 — 라임 톤 */
-  .section-head .idx { background: var(--lime-soft); color: var(--lime); }
-  .section-head.editing .idx { background: var(--lime); color: var(--bg-deep); }
-
-  /* 입력 폼 */
-  .add-form input::placeholder { color: var(--muted-2); }
-  .add-form input:focus, .add-form select:focus { background: var(--lime-soft); }
-  .add-form select {
+  [data-theme="dark"] .add-form select {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23FFFFFF'/></svg>");
   }
-  .add-form button { background: var(--lime); color: var(--bg-deep); }
-  .add-form button:hover { background: var(--blue); color: var(--lime); }
-  .add-form #addFormCancel {
-    background: transparent; color: var(--muted);
-    border-left: 1px solid var(--line);
+  [data-theme="dark"] .add-form button { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .add-form button:hover { background: var(--blue); color: var(--lime); }
+
+  [data-theme="dark"] .task-check { background: rgba(255,255,255,0.04); }
+  [data-theme="dark"] .task.done .task-check { background: var(--lime); border-color: var(--lime); }
+  [data-theme="dark"] .task.done .task-check::after {
+    border-left: 1.5px solid #000000; border-bottom: 1.5px solid #000000;
   }
-  .add-form #addFormCancel:hover { background: var(--danger-tint); color: var(--danger); }
+  [data-theme="dark"] .task:hover { background: rgba(255,255,255,0.04); }
 
-  /* 할 일 체크박스 — 라임 채우기, 네이비 체크 */
-  .task-check { background: rgba(255,255,255,0.04); border-color: var(--line-strong); }
-  .task-check:hover { border-color: var(--lime); }
-  .task.done .task-check { background: var(--lime); border-color: var(--lime); }
-  .task.done .task-check::after {
-    border-left: 1.5px solid var(--bg-deep);
-    border-bottom: 1.5px solid var(--bg-deep);
-  }
-  .task:hover { background: rgba(255,255,255,0.04); }
-  .task.editing { background: var(--lime-soft); outline: 1.5px solid var(--lime); }
+  [data-theme="dark"] .badge-today { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .badge-project { background: rgba(255,255,255,0.06); color: var(--ink); border-color: var(--line); }
 
-  /* 배지 */
-  .badge-today { background: var(--lime); color: var(--bg-deep); font-weight: 800; }
-  .badge-overdue { background: var(--danger); color: var(--bg-deep); border-color: var(--danger); font-weight: 800; }
-  .badge-project { background: rgba(255,255,255,0.06); color: var(--ink); border-color: var(--line); }
+  [data-theme="dark"] .chip.active { background: var(--lime); color: #000000; border-color: var(--lime); }
+  [data-theme="dark"] .chip:hover { border-color: var(--lime); }
 
-  .empty .icon { color: var(--lime); }
-
-  /* 매트릭스 4분면 */
-  .q-head .qnum { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid var(--line); }
-  .quadrant.q1 .q-head .qnum { color: var(--danger); background: var(--danger-tint-2); border-color: var(--danger); }
-  .quadrant.q2 .q-head .qnum { color: var(--lime); background: var(--lime-soft-2); border-color: var(--lime); }
-  .quadrant.q3 .q-head .qnum { color: var(--ink); border-color: var(--line-strong); }
-
-  /* 캘린더 (할 일 기반) */
-  .cal-dow { background: rgba(255,255,255,0.03); }
-  .cal-day.other { background: rgba(0,0,0,0.28); }
-  .cal-day.other .d-num { color: var(--muted-2); }
-  .cal-day.today::before { background: var(--lime); }
-  .cal-task { background: rgba(255,255,255,0.07); color: var(--ink); }
-  .cal-task.q4 { color: var(--muted); }
-
-  /* 필터 칩 */
-  .chip:hover { border-color: var(--lime); }
-  .chip.active { background: var(--lime); color: var(--bg-deep); border-color: var(--lime); }
-
-  /* 푸터 */
-  .footer .right { color: var(--lime); }
-  .footer strong { color: var(--ink); }
-
-  /* 설정 버튼 — 라임 강조 */
-  .settings-btn {
+  [data-theme="dark"] .settings-btn {
     background: transparent; color: var(--ink);
     border: 1.5px solid var(--ink); box-shadow: none;
   }
-  .settings-btn:hover, .settings-btn.open {
-    background: var(--lime); color: var(--bg-deep);
-    border-color: var(--lime); transform: none; box-shadow: none;
+  [data-theme="dark"] .settings-btn:hover, [data-theme="dark"] .settings-btn.open {
+    background: var(--lime); color: #000000; border-color: var(--lime);
+    transform: none; box-shadow: none;
   }
-  .settings-grid label input:focus { background: rgba(255,255,255,0.10); border-color: var(--lime); }
+  [data-theme="dark"] .settings-grid label input:focus { background: rgba(255,255,255,0.10); border-color: var(--lime); }
+
+  /* 캘린더 (할 일 기반) */
+  [data-theme="dark"] .cal-day.other { background: rgba(255,255,255,0.02); }
+  [data-theme="dark"] .cal-day.today::before { background: var(--lime); }
+  [data-theme="dark"] .cal-task { background: rgba(255,255,255,0.07); color: var(--ink); }
+  [data-theme="dark"] .cal-task.q4 { color: var(--muted); }
+  [data-theme="dark"] .cal-dow { background: rgba(255,255,255,0.03); }
+
+  /* 매트릭스 quadrant 번호 */
+  [data-theme="dark"] .q-head .qnum { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid var(--line); }
+  [data-theme="dark"] .quadrant.q1 .q-head .qnum { color: var(--danger); background: var(--danger-tint-2); border-color: var(--danger); }
+  [data-theme="dark"] .quadrant.q2 .q-head .qnum { color: var(--blue); background: var(--blue-tint-2); border-color: var(--blue); }
+  [data-theme="dark"] .quadrant.q3 .q-head .qnum { color: var(--ink); border-color: var(--line-strong); }
 
   /* Google Calendar */
-  .gcal-open { color: var(--lime); border-color: var(--lime); }
-  .gcal-open:hover { background: var(--lime); color: var(--bg-deep); }
+  [data-theme="dark"] .gcal-login-btn { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .gcal-login-btn:hover { background: var(--blue); color: var(--lime); }
+  [data-theme="dark"] .gcal-login-btn .g-icon { background: #000000; color: var(--lime); }
 
-  .gcal-login-btn {
-    background: var(--lime); color: var(--bg-deep);
-    box-shadow: 0 2px 0 rgba(0,0,0,0.5);
-  }
-  .gcal-login-btn:hover { background: var(--blue); color: var(--lime); }
-  .gcal-login-btn .g-icon { background: var(--bg-deep); color: var(--lime); }
+  [data-theme="dark"] .gcal-action-btn { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .gcal-action-btn:hover { background: var(--blue); color: var(--lime); }
+  [data-theme="dark"] .gcal-action-btn.outline { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  [data-theme="dark"] .gcal-action-btn.outline:hover { background: rgba(255,255,255,0.06); color: var(--ink); border-color: var(--ink); }
 
-  .gcal-action-btn { background: var(--lime); color: var(--bg-deep); }
-  .gcal-action-btn:hover { background: var(--blue); color: var(--lime); }
-  .gcal-action-btn.outline { background: transparent; color: var(--muted); border: 1px solid var(--line); }
-  .gcal-action-btn.outline:hover { background: rgba(255,255,255,0.06); color: var(--ink); border-color: var(--ink); }
+  [data-theme="dark"] .gcal-event-meta .ro { background: rgba(255,255,255,0.06); color: var(--muted); }
+  [data-theme="dark"] .gcal-user-pill { background: rgba(255,255,255,0.06); color: var(--muted); }
+  [data-theme="dark"] .gcal-cal-chip .tag { background: rgba(255,255,255,0.08); color: var(--muted); }
+  [data-theme="dark"] .gcal-day-label.today { background: var(--lime); color: #000000; }
 
-  .gcal-cal-chip:hover { border-color: var(--lime); }
-  .gcal-cal-chip .tag { background: rgba(255,255,255,0.08); color: var(--muted); }
-
-  .gcal-day-label { color: var(--lime); }
-  .gcal-day-label.today { background: var(--lime); color: var(--bg-deep); }
-  .gcal-event-meta .ro { background: rgba(255,255,255,0.06); color: var(--muted); }
-  .gcal-user-pill { background: rgba(255,255,255,0.06); color: var(--muted); }
-
-  /* Week grid */
-  .gcal-grid-nav button:hover { background: rgba(255,255,255,0.06); border-color: var(--lime); }
-  .gcal-grid-nav button.primary {
-    background: var(--lime); color: var(--bg-deep); border-color: var(--lime);
-  }
-  .gcal-grid-nav button.primary:hover {
-    background: var(--blue); color: var(--lime); border-color: var(--blue);
-  }
-  .gcal-grid-nav .view-toggle button.active {
-    background: var(--lime) !important; color: var(--bg-deep) !important;
-  }
-  .gcal-grid-header-row { background: rgba(255,255,255,0.03); }
-  .gcal-time-col { background: rgba(255,255,255,0.02); }
-  .gcal-allday-row { background: rgba(255,255,255,0.03); }
-  .gcal-day-header.today .dnum { background: var(--lime); color: var(--bg-deep); }
-  .gcal-day-col.today { background: rgba(171,255,82,0.05); }
-  .hour-line { border-bottom-color: rgba(255,255,255,0.06); }
-
-  .gcal-chips-bulk { color: var(--lime); }
-  .gcal-chips-title { color: var(--ink); }
+  /* Week grid (다크) */
+  [data-theme="dark"] .gcal-grid-nav button:hover { background: rgba(255,255,255,0.06); }
+  [data-theme="dark"] .gcal-grid-nav button.primary { background: var(--lime); color: #000000; border-color: var(--lime); }
+  [data-theme="dark"] .gcal-grid-nav button.primary:hover { background: var(--blue); color: var(--lime); border-color: var(--blue); }
+  [data-theme="dark"] .gcal-grid-nav .view-toggle button.active { background: var(--lime) !important; color: #000000 !important; }
+  [data-theme="dark"] .gcal-grid-header-row { background: rgba(255,255,255,0.03); }
+  [data-theme="dark"] .gcal-time-col { background: rgba(255,255,255,0.02); }
+  [data-theme="dark"] .gcal-allday-row { background: rgba(255,255,255,0.03); }
+  [data-theme="dark"] .gcal-day-header.today .dnum { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .gcal-day-col.today { background: rgba(171,255,82,0.05); }
+  [data-theme="dark"] .hour-line { border-bottom-color: rgba(255,255,255,0.06); }
 
   /* Month grid */
-  .gcal-month-cell.today { background: rgba(171,255,82,0.05); }
-  .gcal-month-cell.today .d-num { background: var(--lime); color: var(--bg-deep); }
-  .gcal-month-cell.other { background: rgba(0,0,0,0.28); }
-  .gcal-month-event { background: rgba(255,255,255,0.07); color: var(--ink); }
-  .gcal-month-event:hover { background: rgba(255,255,255,0.14); }
+  [data-theme="dark"] .gcal-month-cell.today { background: rgba(171,255,82,0.05); }
+  [data-theme="dark"] .gcal-month-cell.today .d-num { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .gcal-month-cell.other { background: rgba(255,255,255,0.02); }
+  [data-theme="dark"] .gcal-month-event { background: rgba(255,255,255,0.07); color: var(--ink); }
+  [data-theme="dark"] .gcal-month-event:hover { background: rgba(255,255,255,0.14); }
 
   /* 모달 */
-  .modal-backdrop { background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); }
-  .modal form input, .modal form select, .modal form textarea {
+  [data-theme="dark"] .modal-backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+  [data-theme="dark"] .modal form input,
+  [data-theme="dark"] .modal form select,
+  [data-theme="dark"] .modal form textarea {
     background: rgba(255,255,255,0.05); color: var(--ink);
   }
-  .modal form input:focus, .modal form select:focus, .modal form textarea:focus {
+  [data-theme="dark"] .modal form input:focus,
+  [data-theme="dark"] .modal form select:focus,
+  [data-theme="dark"] .modal form textarea:focus {
     background: rgba(255,255,255,0.10); border-color: var(--lime);
   }
-  .modal-foot .btn-save { background: var(--lime); color: var(--bg-deep); }
-  .modal-foot .btn-save:hover { background: var(--blue); color: var(--lime); }
-  .modal-foot .btn-cancel { background: rgba(255,255,255,0.06); color: var(--muted); }
-  .modal-foot .btn-cancel:hover { background: rgba(255,255,255,0.12); color: var(--ink); }
+  [data-theme="dark"] .modal-foot .btn-save { background: var(--lime); color: #000000; }
+  [data-theme="dark"] .modal-foot .btn-save:hover { background: var(--blue); color: var(--lime); }
+  [data-theme="dark"] .modal-foot .btn-cancel { background: rgba(255,255,255,0.06); color: var(--muted); }
+  [data-theme="dark"] .modal-foot .btn-cancel:hover { background: rgba(255,255,255,0.12); color: var(--ink); }
 
-  /* 콜아웃·강조 */
-  .focus-stat { /* legacy */ }
+  /* 테마 토글 버튼 */
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--line);
+    width: 38px; height: 38px; border-radius: 3px;
+    font-size: 16px; line-height: 1; padding: 0;
+    color: var(--ink); cursor: pointer; transition: all .12s;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .theme-toggle:hover { background: var(--bg); border-color: var(--ink); }
+  [data-theme="dark"] .theme-toggle:hover { background: rgba(255,255,255,0.06); border-color: var(--lime); color: var(--lime); }
 
   @media (max-width: 900px) {
     .app { padding: 20px; }
@@ -1221,6 +1189,7 @@
         <div class="date-eyebrow">오늘</div>
         <div class="date-main" id="dateMain"></div>
       </div>
+      <button class="theme-toggle" id="themeToggle" title="라이트/다크 모드 전환">🌙</button>
       <button class="settings-btn" id="settingsBtn" title="이름·미션 변경">
         <span class="icon">⚙</span>
         <span>내 정보 설정</span>
@@ -2917,6 +2886,25 @@
     document.getElementById("settingsPanel").setAttribute("hidden","");
     document.getElementById("settingsBtn").classList.remove("open");
   });
+
+  // ===== 라이트/다크 테마 토글 =====
+  const THEME_KEY = "gainge_consultant_theme_v1";
+  function applyTheme(theme) {
+    if (theme === "dark") document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+    const btn = document.getElementById("themeToggle");
+    if (btn) btn.textContent = theme === "dark" ? "☀" : "🌙";
+  }
+  function loadTheme() { return localStorage.getItem(THEME_KEY) || "light"; }
+  function setTheme(theme) {
+    localStorage.setItem(THEME_KEY, theme);
+    applyTheme(theme);
+  }
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const current = localStorage.getItem(THEME_KEY) || "light";
+    setTheme(current === "dark" ? "light" : "dark");
+  });
+  applyTheme(loadTheme());
 
   applyBrand();
   syncSettingsForm();
