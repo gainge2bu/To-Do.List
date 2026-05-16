@@ -1930,14 +1930,23 @@
     console.log("[gcal] Loading events for", visible.length, "of", gcalCalendars.length, "calendars · range:", dateToISO(start), "~", dateToISO(end));
     const results = await Promise.all(visible.map(async (c) => {
       try {
-        const data = await gcalApi(
-          "/calendars/" + encodeURIComponent(c.id) +
-          "/events?timeMin=" + start.toISOString() +
-          "&timeMax=" + end.toISOString() +
-          "&singleEvents=true&orderBy=startTime&maxResults=250"
-        );
-        const items = (data.items || []).map(e => Object.assign({}, e, { _cal: c }));
-        if (items.length > 0) console.log("[gcal]   ✓", c.summary, "→", items.length, "events");
+        let allItems = [];
+        let pageToken = null;
+        let pageCount = 0;
+        do {
+          const url = "/calendars/" + encodeURIComponent(c.id) +
+            "/events?timeMin=" + start.toISOString() +
+            "&timeMax=" + end.toISOString() +
+            "&singleEvents=true&orderBy=startTime&maxResults=2500" +
+            (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
+          const data = await gcalApi(url);
+          allItems = allItems.concat(data.items || []);
+          pageToken = data.nextPageToken || null;
+          pageCount++;
+          if (pageCount > 5) { console.warn("[gcal]   ⚠", c.summary, "stopped at 5 pages"); break; }
+        } while (pageToken);
+        const items = allItems.map(e => Object.assign({}, e, { _cal: c }));
+        if (items.length > 0) console.log("[gcal]   ✓", c.summary, "→", items.length, "events" + (pageCount > 1 ? " (" + pageCount + " pages)" : ""));
         return items;
       } catch (err) {
         console.warn("[gcal]   ✗", c.summary, "failed:", err.message);
