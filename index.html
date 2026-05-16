@@ -694,6 +694,41 @@
     font-size: 14px; font-weight: 800; color: var(--ink);
     margin-left: 14px; letter-spacing: -0.015em;
   }
+  .gcal-grid-nav .nav-spacer { flex: 1; }
+  .gcal-grid-nav button.primary {
+    background: var(--ink); color: var(--lime); border-color: var(--ink);
+  }
+  .gcal-grid-nav button.primary:hover {
+    background: var(--blue); color: var(--lime); border-color: var(--blue);
+  }
+
+  .gcal-chips-below {
+    margin-top: 14px;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 3px; padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .gcal-chips-head {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .gcal-chips-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--ink); text-transform: uppercase;
+  }
+  .gcal-chips-desc {
+    font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: -0.005em;
+  }
+  .gcal-chips-below .gcal-cal-chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .gcal-chips-bulk {
+    font-size: 11px; color: var(--blue); font-weight: 700;
+    cursor: pointer; margin-left: auto;
+    border: none; background: transparent; padding: 0;
+    letter-spacing: -0.005em;
+  }
+  .gcal-chips-bulk:hover { text-decoration: underline; }
   .gcal-grid-wrap {
     background: var(--card); border: 1px solid var(--line);
     border-radius: 0 0 3px 3px; box-shadow: var(--shadow-md);
@@ -1802,6 +1837,14 @@
       if (a.writable !== b.writable) return a.writable ? -1 : 1;
       return a.summary.localeCompare(b.summary);
     });
+    // 첫 로그인 시: 본인(primary) 캘린더만 켜고 나머지는 기본 숨김
+    const VISIBILITY_INIT_KEY = "gainge_gcal_visibility_default_v1";
+    if (!localStorage.getItem(VISIBILITY_INIT_KEY)) {
+      gcalCalendars.forEach(c => { if (!c.primary) gcalHiddenCalIds.add(c.id); });
+      saveGcalHidden();
+      localStorage.setItem(VISIBILITY_INIT_KEY, "1");
+      console.log("[gcal] First load — defaulted to primary calendar only");
+    }
   }
 
   async function loadGcalEvents() {
@@ -2125,13 +2168,48 @@
       return;
     }
 
-    const toolbar = document.createElement("div");
-    toolbar.className = "gcal-toolbar";
-    toolbar.innerHTML =
-      '<div class="gcal-cal-chips" id="gcal-cal-chips"></div>' +
-      '<button class="gcal-action-btn" id="gcalNewBtn">＋ 새 일정</button>' +
-      '<button class="gcal-action-btn outline" id="gcalLogoutBtn">로그아웃</button>';
-    view.appendChild(toolbar);
+    // Week navigation bar (now includes + 새 일정 / 로그아웃)
+    const navBar = document.createElement("div");
+    navBar.className = "gcal-grid-nav";
+    const monday = getMondayOfWeek(gcalAnchorDate);
+    navBar.innerHTML =
+      '<button id="gcalPrevBtn">‹ 이전 주</button>' +
+      '<button id="gcalTodayBtn">이번 주</button>' +
+      '<button id="gcalNextBtn">다음 주 ›</button>' +
+      '<span class="nav-title">' + weekTitleFromMonday(monday) + '</span>' +
+      '<span class="nav-spacer"></span>' +
+      '<button id="gcalNewBtn" class="primary">＋ 새 일정</button>' +
+      '<button id="gcalLogoutBtn">로그아웃</button>';
+    view.appendChild(navBar);
+    document.getElementById("gcalPrevBtn").addEventListener("click", () => gcalNavigateWeek(-7));
+    document.getElementById("gcalTodayBtn").addEventListener("click", () => gcalNavigateWeek(0, true));
+    document.getElementById("gcalNextBtn").addEventListener("click", () => gcalNavigateWeek(7));
+    document.getElementById("gcalNewBtn").addEventListener("click", () => openGcalModal(null));
+    document.getElementById("gcalLogoutBtn").addEventListener("click", gcalLogout);
+
+    // Week grid
+    const grid = renderGcalWeekGrid();
+    view.appendChild(grid);
+    if (gcalLoading) {
+      const overlay = document.createElement("div");
+      overlay.className = "gcal-loading-overlay";
+      overlay.textContent = "불러오는 중…";
+      grid.appendChild(overlay);
+    }
+
+    // Calendar chips BELOW grid
+    const chipsBox = document.createElement("div");
+    chipsBox.className = "gcal-chips-below";
+    const hiddenCount = gcalCalendars.filter(c => gcalHiddenCalIds.has(c.id)).length;
+    const allHidden = hiddenCount === gcalCalendars.length;
+    chipsBox.innerHTML =
+      '<div class="gcal-chips-head">' +
+      '<span class="gcal-chips-title">표시 캘린더</span>' +
+      '<span class="gcal-chips-desc">클릭해서 표시/숨김 · 본인 캘린더만 기본 활성</span>' +
+      '<button class="gcal-chips-bulk" id="gcalBulkBtn">' + (hiddenCount > 0 ? "전부 켜기" : "본인만 남기기") + '</button>' +
+      '</div>' +
+      '<div class="gcal-cal-chips" id="gcal-cal-chips"></div>';
+    view.appendChild(chipsBox);
 
     const chipsEl = document.getElementById("gcal-cal-chips");
     gcalCalendars.forEach(c => {
@@ -2152,32 +2230,20 @@
       });
       chipsEl.appendChild(chip);
     });
-    document.getElementById("gcalNewBtn").addEventListener("click", () => openGcalModal(null));
-    document.getElementById("gcalLogoutBtn").addEventListener("click", gcalLogout);
 
-    // Week navigation bar
-    const navBar = document.createElement("div");
-    navBar.className = "gcal-grid-nav";
-    const monday = getMondayOfWeek(gcalAnchorDate);
-    navBar.innerHTML =
-      '<button id="gcalPrevBtn">‹ 이전 주</button>' +
-      '<button id="gcalTodayBtn">이번 주</button>' +
-      '<button id="gcalNextBtn">다음 주 ›</button>' +
-      '<span class="nav-title">' + weekTitleFromMonday(monday) + '</span>';
-    view.appendChild(navBar);
-    document.getElementById("gcalPrevBtn").addEventListener("click", () => gcalNavigateWeek(-7));
-    document.getElementById("gcalTodayBtn").addEventListener("click", () => gcalNavigateWeek(0, true));
-    document.getElementById("gcalNextBtn").addEventListener("click", () => gcalNavigateWeek(7));
-
-    // Week grid
-    const grid = renderGcalWeekGrid();
-    view.appendChild(grid);
-    if (gcalLoading) {
-      const overlay = document.createElement("div");
-      overlay.className = "gcal-loading-overlay";
-      overlay.textContent = "불러오는 중…";
-      grid.appendChild(overlay);
-    }
+    document.getElementById("gcalBulkBtn").addEventListener("click", async () => {
+      if (hiddenCount > 0) {
+        // Turn all on
+        gcalHiddenCalIds.clear();
+      } else {
+        // Keep only primary
+        gcalCalendars.forEach(c => { if (!c.primary) gcalHiddenCalIds.add(c.id); });
+      }
+      saveGcalHidden();
+      gcalLoading = true; renderGcalView();
+      try { await loadGcalEvents(); } catch (e) { console.error(e); }
+      gcalLoading = false; renderGcalView();
+    });
   }
 
   // ===== Event Modal =====
