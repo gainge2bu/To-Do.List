@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tim의 일정 관리 시트 · 임종은 컨설턴트</title>
+<title>일정 관리 시트</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -1041,8 +1041,8 @@
       <div class="logo">G</div>
       <div class="meta">
         <div class="eyebrow">가인지컨설팅그룹 · 컨설턴트 워크벤치</div>
-        <h1 id="brand-title">임종은 컨설턴트(Tim)이 쓰는 일정 관리 시트</h1>
-        <div class="tagline" id="brand-tagline">내 전부로 당신을 빛나게</div>
+        <h1 id="brand-title">일정 관리 시트</h1>
+        <div class="tagline" id="brand-tagline" style="display:none;"></div>
       </div>
     </div>
     <div class="topbar-right">
@@ -2650,10 +2650,10 @@
   // ===== 개인 설정 (이름·직함·미션) =====
   const SETTINGS_KEY = "gainge_consultant_settings_v1";
   const SETTINGS_DEFAULT = {
-    name: "임종은",
-    role: "컨설턴트",
-    en: "Tim",
-    mission: "내 전부로 당신을 빛나게",
+    name: "",
+    role: "",
+    en: "",
+    mission: "",
   };
 
   function loadSettings() {
@@ -2668,12 +2668,24 @@
 
   function applyBrand() {
     const s = userSettings;
-    const name = (s.name || SETTINGS_DEFAULT.name).trim();
-    const role = (s.role || SETTINGS_DEFAULT.role).trim();
-    const en = (s.en || SETTINGS_DEFAULT.en).trim();
+    const name = (s.name || "").trim();
+    const role = (s.role || "").trim();
+    const en = (s.en || "").trim();
     const enPart = en ? `(${en})` : "";
-    document.getElementById("brand-title").textContent = `${name} ${role}${enPart}이 쓰는 일정 관리 시트`;
-    document.title = `${en || name}의 일정 관리 시트 · ${name} ${role}`;
+
+    let title;
+    if (name && role) title = `${name} ${role}${enPart}이 쓰는 일정 관리 시트`;
+    else if (name) title = `${name}${enPart}의 일정 관리 시트`;
+    else if (role) title = `${role}의 일정 관리 시트`;
+    else title = "일정 관리 시트";
+    document.getElementById("brand-title").textContent = title;
+
+    let docTitle;
+    if (en) docTitle = `${en}의 일정 관리 시트`;
+    else if (name) docTitle = `${name}의 일정 관리 시트`;
+    else docTitle = "일정 관리 시트";
+    document.title = docTitle;
+
     const tagline = document.getElementById("brand-tagline");
     const mission = (s.mission || "").trim();
     if (mission) { tagline.textContent = mission; tagline.style.display = ""; }
